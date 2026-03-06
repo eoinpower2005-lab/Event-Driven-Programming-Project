@@ -16,6 +16,9 @@ import javafx.stage.Stage;
 import javafx.event.Event;
 
 import java.awt.event.ActionListener;
+import java.io.*;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,6 +26,10 @@ import java.util.ArrayList;
 import static javafx.application.Platform.exit;
 
 public class App extends Application {
+    Socket socket = null;
+    BufferedReader sInput = null;
+    PrintWriter sOutput = null;
+    private boolean serverConnected = false;
 
     public static void main(String[] args) {
         launch(args);
@@ -60,7 +67,7 @@ public class App extends Application {
         Button b3 = new Button("Clear");
         b3.setMaxWidth(140);
 
-        Label statusLabel = new Label("Status: Connection Opened");
+        Label statusLabel = new Label("Status: Client and Server Connecting.");
 
         TextArea ta = new TextArea();
         ta.setEditable(false);
@@ -83,43 +90,117 @@ public class App extends Application {
         tableView.getColumns().addAll(col1, col2, col3, col4);
         tableView.setEditable(false);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        tableView.setItems(server.getTimetableSlots());
+        ObservableList<TimetableSlot> slots = FXCollections.observableArrayList();
+        tableView.setItems(slots);
+
+        try {
+            socket = new Socket(InetAddress.getLocalHost(), 1234);
+            sInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            sOutput = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+            serverConnected = true;
+            statusLabel.setText("Status: Connection Established.");
+            ta.appendText("Status: Connection Established." + "\n");
+        } catch (IOException e) {
+            statusLabel.setText("Status: Connection between Client and Server could not be established.");
+            ta.appendText("Status: Connection between Client and Server could not be established." + "\n");
+            b1.setDisable(true);
+            b2.setDisable(true);
+            b3.setDisable(true);
+        }
 
         EventHandler<ActionEvent> button1Event = new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
+                if (!serverConnected) {
+                    displayError("Server is not connected.");
+                    return;
+                }
                 try {
                     String option = box1.getValue();
                     String room = roomID.getText();
                     String date = String.valueOf(datePicker.getValue());
                     String time = box2.getValue();
                     String module = box3.getValue();
+
                     if (option == null) {
-                        throw new InvalidInputException("You must select an option!");
+                        throw new IncorrectActionException("You must select an option!");
                     }
 
-                    String request = " ";
+                    String request = "";
                     if (option.equals("ADD") || option.equals("REMOVE")) {
+                        if (date == null || date.isEmpty() || time == null || time.isEmpty() || room == null || room.isEmpty() || module == null || module.isEmpty()) {
+                            throw new IncorrectActionException("Data fields cannot be empty!");
+                        }
                         request = option + "|" + date + "|" + time + "|" + room + "|" + module;
                     } else if (option.equals("DISPLAY")) {
                         request = option + "||||";
                     }
 
                     ta.appendText("CLIENT: " + request + "\n");
-                    String response = server.clientRequest(request);
-                    ta.appendText("SERVER: " + response + "\n");
+                    sOutput.println(request);
 
-                } catch (InvalidInputException e) {
+                    String message = sInput.readLine();
+                    if (message == null) {
+                        ta.appendText("SERVER: Connection Closed.");
+                        serverConnected = false;
+                        statusLabel.setText("Status: Connection Closed.");
+                        b1.setDisable(true);
+                        b2.setDisable(true);
+                        b3.setDisable(true);
+                        return;
+                    }
+                    ta.appendText("SERVER: " + message + "\n");
+
+                    if (message.startsWith("LECTURE SUCCESSFULLY ADDED: ")) {
+                        slots.add(new TimetableSlot(date, time, room, module));
+                    } else if (message.startsWith("LECTURE SUCCESSFULLY REMOVED: ")) {
+                        for (TimetableSlot slot : slots) {
+                            if (slot.getDate().equals(date) && slot.getRoom().equals(room) && slot.getModule().equals(module) && slot.getTime().equals(time)) {
+                                slots.remove(slot);
+                                break;
+                            }
+                        }
+                    }
+                } catch (IncorrectActionException e) {
+                    displayError(e.getMessage());
+                } catch (IOException e) {
                     displayError(e.getMessage());
                 }
             }
-
-            ;
         };
 
         EventHandler<ActionEvent> button2Event = new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
+                if (serverConnected) {
+                    try {
+                        ta.appendText("CLIENT: STOP. \n");
+                        sOutput.println("STOP");
+                        String message = sInput.readLine();
+                        if (message != null) {
+                            ta.appendText("SERVER: " + message + "\n");
+                        } else {
+                            ta.appendText("SERVER: No Client Response. \n");
+                        }
+                        serverConnected = false;
+                    } catch (IOException e) {
+                        displayError("Closing Connection: " + e.getMessage());
+                    } finally {
+                        try {
+                            if (sInput != null) {
+                                sInput.close();
+                            }
+                            if (sOutput != null) {
+                                sOutput.close();
+                            }
+                            if (socket != null) {
+                                socket.close();
+                            }
+                        } catch (IOException e) {
+                            displayError("Closing Connection: " + e.getMessage());
+                        }
+                    }
+                }
                 b1.setDisable(true);
                 ta.appendText("Status: Connection Closed. \n");
                 statusLabel.setText("Status: Connection Closed");
@@ -130,11 +211,23 @@ public class App extends Application {
         EventHandler<ActionEvent> button3Event = new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                server.getTimetableSlots().clear();
-                ta.appendText("Timetable Slots Cleared. \n");
+                if (serverConnected) {
+                    try {
+                        ta.appendText("CLIENT: Clear Timetable Slots. \n");
+                        sOutput.println("Clear Timetable Slots.");
+                        String message = sInput.readLine();
+                        if (message != null) {
+                            ta.appendText("SERVER: " + message + "\n");
+                            slots.clear();
+                        } else {
+                            ta.appendText("SERVER: No Client Response. \n");
+                        }
+                    } catch (IOException e) {
+                        displayError("Closing Connection: " + e.getMessage());
+                    }
+                }
             }
         };
-
 
         b1.setOnAction(button1Event);
         b2.setOnAction(button2Event);
@@ -147,8 +240,6 @@ public class App extends Application {
         pane.setBottom(ta);
         vbox.setSpacing(3);
 
-
-        ta.appendText("Status: Connection Opened. \n");
         Scene scene = new Scene(pane, 400, 400);
         primaryStage.setScene(scene);
         primaryStage.setTitle("Lecture Scheduler");
