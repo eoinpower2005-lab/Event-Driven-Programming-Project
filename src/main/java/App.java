@@ -37,9 +37,8 @@ public class App extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        Server server = new Server();
 
-        ComboBox<String> box1 = new ComboBox(FXCollections.observableArrayList("ADD", "REMOVE", "DISPLAY"));
+        ComboBox<String> box1 = new ComboBox(FXCollections.observableArrayList("ADD", "REMOVE", "DISPLAY", "OTHER"));
         box1.setPromptText("Choose an Option");
         box1.setMaxWidth(140);
 
@@ -123,16 +122,18 @@ public class App extends Application {
                     String module = box3.getValue();
 
                     if (option == null) {
-                        throw new IncorrectActionException("You must select an option!");
+                        throw new InvalidInputException("You must select an option!");
                     }
 
                     String request = "";
                     if (option.equals("ADD") || option.equals("REMOVE")) {
                         if (date == null || date.isEmpty() || time == null || time.isEmpty() || room == null || room.isEmpty() || module == null || module.isEmpty()) {
-                            throw new IncorrectActionException("Data fields cannot be empty!");
+                            throw new InvalidInputException("Data fields cannot be empty!");
                         }
                         request = option + "|" + date + "|" + time + "|" + room + "|" + module;
                     } else if (option.equals("DISPLAY")) {
+                        request = option + "||||";
+                    } else if (option.equals("OTHER")) {
                         request = option + "||||";
                     }
 
@@ -160,11 +161,18 @@ public class App extends Application {
                                 break;
                             }
                         }
+                    } else if (message.startsWith("Clash") || message.startsWith("Error")) {
+                        displayError(message);
                     }
-                } catch (IncorrectActionException e) {
+                } catch (InvalidInputException e) {
                     displayError(e.getMessage());
                 } catch (IOException e) {
-                    displayError(e.getMessage());
+                    displayError("Closing Connection: " + e.getMessage());
+                    ta.appendText("SERVER: Connection Closed.");
+                    statusLabel.setText("Status: Connection Closed.");
+                    b1.setDisable(true);
+                    b2.setDisable(true);
+                    b3.setDisable(true);
                 }
             }
         };
@@ -203,8 +211,9 @@ public class App extends Application {
                 }
                 b1.setDisable(true);
                 ta.appendText("Status: Connection Closed. \n");
-                statusLabel.setText("Status: Connection Closed");
+                statusLabel.setText("Status: Connection Closed.");
                 b2.setDisable(true);
+                b3.setDisable(true);
             }
         };
 
@@ -216,11 +225,12 @@ public class App extends Application {
                         ta.appendText("CLIENT: Clear Timetable Slots. \n");
                         sOutput.println("Clear Timetable Slots.");
                         String message = sInput.readLine();
-                        if (message != null) {
+                        if (message != null && message.startsWith("Error")) {
                             ta.appendText("SERVER: " + message + "\n");
-                            slots.clear();
+                            displayError(message);
                         } else {
-                            ta.appendText("SERVER: No Client Response. \n");
+                            ta.appendText("SERVER: " + message  + "\n");
+                            slots.clear();
                         }
                     } catch (IOException e) {
                         displayError("Closing Connection: " + e.getMessage());
