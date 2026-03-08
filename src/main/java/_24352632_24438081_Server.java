@@ -1,16 +1,11 @@
-import javafx.beans.Observable;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.sql.Time;
 import java.util.ArrayList;
 
-public class Server {
+public class _24352632_24438081_Server {
     public static void main(String[] args) {
-        Server server = new Server();
+        _24352632_24438081_Server server = new _24352632_24438081_Server();
         server.beginServer();
     }
     private final ArrayList<TimetableSlot> timetableSlots = new ArrayList<>();

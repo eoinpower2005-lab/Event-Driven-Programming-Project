@@ -1,31 +1,21 @@
 import javafx.application.Application;
-import javafx.beans.Observable;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.event.Event;
 
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.sql.Time;
 import java.time.LocalDate;
-import java.util.ArrayList;
 
-import static javafx.application.Platform.exit;
-
-public class App extends Application {
+public class _24352632_24438081_Client extends Application {
     Socket socket = null;
     BufferedReader sInput = null;
     PrintWriter sOutput = null;
