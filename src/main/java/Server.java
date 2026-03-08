@@ -47,14 +47,12 @@ public class Server {
                         output.println(response);
                     }
                     System.out.println("Client Disconnected!");
-                    socket.close();
+                    //socket.close();
                 } catch (IOException e) {
                     System.out.println("Error : " + e.getMessage());
                 } finally {
                     try {
-                        if (servSock != null) {
-                            servSock.close();
-                        }
+                        socket.close();
                     } catch (IOException e) {
                         System.out.println("Error : " + e.getMessage());
                     }
@@ -62,6 +60,14 @@ public class Server {
             }
         } catch (IOException e) {
             System.out.println("Error: " + e.getMessage());
+        } finally {
+            try {
+                if (servSock != null) {
+                    servSock.close();
+                }
+            } catch (IOException e) {
+                System.out.println("Error : " + e.getMessage());
+            }
         }
     }
 
