@@ -151,6 +151,19 @@ public class _24352632_24438081_Client extends Application {
                                 break;
                             }
                         }
+                    } else if (message.startsWith("DISPLAY: ")) {
+                        slots.clear();
+                        String text = message.substring(9);
+                        String[] tSlots = text.split("\\.");
+                        for (String tSlot : tSlots) {
+                            if (tSlot.isEmpty()) {
+                                continue;
+                            }
+                            String[] parts = tSlot.split("\\|", -1);
+                            if (parts.length == 4) {
+                                slots.add(new TimetableSlot(parts[0], parts[1], parts[2], parts[3]));
+                            }
+                        }
                     } else if (message.startsWith("Clash") || message.startsWith("Error")) {
                         displayError(message);
                     }
