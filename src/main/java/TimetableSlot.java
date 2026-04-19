@@ -25,6 +25,11 @@ public class TimetableSlot {
         return time;
     }
 
+    public String getStartTime() {
+        String[] parts = time.split("-");
+        return parts[0];
+    }
+
     public void setTime(String time) {
         this.time = time;
     }
