@@ -13,6 +13,8 @@ public class ShiftDays extends RecursiveAction {
         this.timetableSlots = timetableSlots;
     }
 
+    private boolean shifted = true;
+
     @Override
     protected void compute() {
         if (dates.size() == 1) {
@@ -24,16 +26,24 @@ public class ShiftDays extends RecursiveAction {
             left.fork();
             right.compute();
             left.join();
+
+            if (!left.shifted || !right.shifted) {
+                shifted = false;
+            }
         }
     }
 
     private void shiftToMorning(String date) {
-        List<TimetableSlot> daySlots = new ArrayList<>();
         synchronized (timetableSlots) {
+            List<TimetableSlot> daySlots = new ArrayList<>();
             for (TimetableSlot timetableSlot : timetableSlots) {
                 if (timetableSlot.getDate().equals(date)) {
                     daySlots.add(timetableSlot);
                 }
+            }
+
+            if (daySlots.isEmpty()) {
+                return;
             }
 
             daySlots.sort(Comparator.comparing(TimetableSlot::getStartTime));
@@ -42,6 +52,7 @@ public class ShiftDays extends RecursiveAction {
                 String shiftedTime = times[i];
                 for (TimetableSlot slot : timetableSlots) {
                     if (slot.getDate().equals(date) && slot.getTime().equals(shiftedTime) && !daySlots.contains(slot)) {
+                        shifted = false;
                         return;
                     }
                 }
@@ -51,5 +62,9 @@ public class ShiftDays extends RecursiveAction {
                 daySlots.get(i).setTime(times[i]);
             }
         }
+    }
+
+    public boolean shifted() {
+        return shifted;
     }
 }

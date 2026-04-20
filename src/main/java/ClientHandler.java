@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -119,6 +120,7 @@ public class ClientHandler implements Runnable {
                     throw new InvalidInputException("Error - Cannot shift timetable slots! No slots exist.");
                 }
             }
+
             try {
                 SchedulingTask task = new SchedulingTask(timetableSlots);
                 response = task.call();

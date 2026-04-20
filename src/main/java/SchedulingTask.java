@@ -12,7 +12,7 @@ public class SchedulingTask extends Task<String> {
     }
 
     @Override
-    public String call() throws Exception {
+    public String call() {
         List<String> slotDates = new ArrayList<>();
         synchronized (timetableSlots) {
             for (TimetableSlot slot : timetableSlots) {
@@ -23,11 +23,17 @@ public class SchedulingTask extends Task<String> {
         }
 
         ForkJoinPool forkJoinPool = new ForkJoinPool();
+        ShiftDays sd = new ShiftDays(slotDates, timetableSlots);
         try {
-            forkJoinPool.invoke(new ShiftDays(slotDates, timetableSlots));
+            forkJoinPool.invoke(sd);
         } finally {
             forkJoinPool.shutdown();
         }
-        return "Lectures Shifted to Morning Slots";
+
+        if (!sd.shifted()) {
+            return "Error - Lectures could not be shifted. Morning slots are already occupied!";
+        }
+
+        return "Scheduled lectures shifted successfully";
     }
 }
