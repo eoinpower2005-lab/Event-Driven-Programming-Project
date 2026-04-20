@@ -13,7 +13,6 @@ public class SchedulingTask extends Task<String> {
 
     @Override
     public String call() throws Exception {
-        updateMessage("Shifting Scheduled Lectures to Morning Slots");
         List<String> slotDates = new ArrayList<>();
         synchronized (timetableSlots) {
             for (TimetableSlot slot : timetableSlots) {
@@ -29,7 +28,6 @@ public class SchedulingTask extends Task<String> {
         } finally {
             forkJoinPool.shutdown();
         }
-        updateMessage("Scheduled Lectures Shifted to Morning Slots");
         return "Lectures Shifted to Morning Slots";
     }
 }

@@ -34,6 +34,8 @@ public class ClientHandler implements Runnable {
                     response = e.getMessage();
                 } catch (IncorrectActionException e) {
                     response = e.getMessage();
+                } catch (InterruptedException e) {
+                    response = e.getMessage();
                 }
 
                 output.println(response);
@@ -55,7 +57,7 @@ public class ClientHandler implements Runnable {
 
     private static final ArrayList<TimetableSlot> timetableSlots = new ArrayList<>();
 
-    public String clientRequest(String request) throws InvalidInputException, IncorrectActionException {
+    public String clientRequest(String request) throws InvalidInputException, IncorrectActionException, InterruptedException {
         String response = "";
 
         if (request.equals("Clear Timetable Slots.")) {
@@ -111,6 +113,19 @@ public class ClientHandler implements Runnable {
             }
 
             response = "LECTURE SUCCESSFULLY REMOVED: " + date + "|" + time + "|" + room + "|" + module;
+        } else if (option.equals("EARLY LECTURES")) {
+            synchronized (timetableSlots) {
+                if (timetableSlots.isEmpty()) {
+                    throw new InvalidInputException("Error - Cannot shift timetable slots! No slots exist.");
+                }
+            }
+            try {
+                SchedulingTask task = new SchedulingTask(timetableSlots);
+                response = task.call();
+            } catch (Exception e) {
+                response = e.getMessage();
+            }
+
         } else if (option.equals("DISPLAY")) {
             synchronized (timetableSlots) {
                 if (timetableSlots == null || timetableSlots.isEmpty()) {

@@ -28,7 +28,7 @@ public class _24352632_24438081_Client extends Application {
     @Override
     public void start(Stage primaryStage) {
 
-        ComboBox<String> box1 = new ComboBox(FXCollections.observableArrayList("ADD", "REMOVE", "DISPLAY", "OTHER"));
+        ComboBox<String> box1 = new ComboBox(FXCollections.observableArrayList("ADD", "REMOVE", "DISPLAY", "EARLY LECTURES", "OTHER"));
         box1.setPromptText("Choose an Option");
         box1.setMaxWidth(140);
 
@@ -122,6 +122,8 @@ public class _24352632_24438081_Client extends Application {
                         }
                         request = option + "|" + date + "|" + time + "|" + room + "|" + module;
                     } else if (option.equals("DISPLAY")) {
+                        request = option + "||||";
+                    } else if (option.equals("EARLY LECTURES")) {
                         request = option + "||||";
                     } else if (option.equals("OTHER")) {
                         request = option + "||||";
