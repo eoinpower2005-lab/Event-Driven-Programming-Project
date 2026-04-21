@@ -14,6 +14,7 @@ public class ShiftDays extends RecursiveAction {
     }
 
     private boolean shifted = true;
+    private final List<TimetableSlot> daySlots = new ArrayList<>();
 
     @Override
     protected void compute() {
@@ -35,7 +36,6 @@ public class ShiftDays extends RecursiveAction {
 
     private void shiftToMorning(String date) {
         synchronized (timetableSlots) {
-            List<TimetableSlot> daySlots = new ArrayList<>();
             for (TimetableSlot timetableSlot : timetableSlots) {
                 if (timetableSlot.getDate().equals(date)) {
                     daySlots.add(timetableSlot);
@@ -64,7 +64,7 @@ public class ShiftDays extends RecursiveAction {
         }
     }
 
-    public boolean shifted() {
+    public boolean isShifted() {
         return shifted;
     }
 }

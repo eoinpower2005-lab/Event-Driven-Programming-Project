@@ -30,10 +30,16 @@ public class SchedulingTask extends Task<String> {
             forkJoinPool.shutdown();
         }
 
-        if (!sd.shifted()) {
+        if (!sd.isShifted()) {
             return "Error - Lectures could not be shifted. Morning slots are already occupied!";
         }
 
-        return "Scheduled lectures shifted successfully";
+        StringBuilder sb = new StringBuilder("DISPLAY EARLY LECTURES: ");
+        synchronized (timetableSlots) {
+            for (TimetableSlot slot : timetableSlots) {
+                sb.append(slot.getDate()).append("|").append(slot.getTime()).append("|").append(slot.getRoom()).append("|").append(slot.getModule()).append(".");
+            }
+        }
+        return sb.toString();
     }
 }

@@ -153,9 +153,14 @@ public class _24352632_24438081_Client extends Application {
                                 break;
                             }
                         }
-                    } else if (message.startsWith("DISPLAY: ")) {
+                    } else if (message.startsWith("DISPLAY: ") || message.startsWith("DISPLAY EARLY LECTURES: ")) {
                         slots.clear();
-                        String text = message.substring(9);
+                        String text = "";
+                        if (message.startsWith("DISPLAY: ")) {
+                            text = message.substring(9);
+                        } else {
+                            text = message.substring(24);
+                        }
                         String[] tSlots = text.split("\\.");
                         for (String tSlot : tSlots) {
                             if (tSlot.isEmpty()) {

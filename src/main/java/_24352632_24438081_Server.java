@@ -1,3 +1,5 @@
+import javafx.application.Platform;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -8,7 +10,11 @@ public class _24352632_24438081_Server {
     private static final int PORT = 1234;
     private static int clientConnections = 0;
 
-    public static void main(String[] args) {
+    public static void main(String[] args){
+        Platform.startup(() -> {});
+        Platform.setImplicitExit(false);
+
+
         System.out.println("Listening on port 1234!");
         try {
             servSocket = new ServerSocket(PORT);

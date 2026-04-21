@@ -1,7 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -57,6 +57,7 @@ public class ClientHandler implements Runnable {
     }
 
     private static final ArrayList<TimetableSlot> timetableSlots = new ArrayList<>();
+    private static ExecutorService executorService = Executors.newCachedThreadPool();
 
     public String clientRequest(String request) throws InvalidInputException, IncorrectActionException, InterruptedException {
         String response = "";
@@ -123,7 +124,8 @@ public class ClientHandler implements Runnable {
 
             try {
                 SchedulingTask task = new SchedulingTask(timetableSlots);
-                response = task.call();
+                executorService.submit(task);
+                response = task.get();
             } catch (Exception e) {
                 response = e.getMessage();
             }
@@ -135,7 +137,7 @@ public class ClientHandler implements Runnable {
                 } else {
                     StringBuilder sb = new StringBuilder("DISPLAY: ");
                     for (TimetableSlot slot : timetableSlots) {
-                        sb.append(slot.getDate()).append("|").append(slot.getTime()).append("|").append(slot.getRoom()).append("|").append(slot.getModule()).append(". ");
+                        sb.append(slot.getDate()).append("|").append(slot.getTime()).append("|").append(slot.getRoom()).append("|").append(slot.getModule()).append(".");
                     }
                     response = sb.toString();
                 }
