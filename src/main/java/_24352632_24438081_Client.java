@@ -269,8 +269,11 @@ public class _24352632_24438081_Client extends Application {
                             ta.appendText("SERVER: No Client Response. \n");
                         }
                         serverConnected = false;
-                        ta.appendText("SERVER: Connection Closed.");
-                        statusLabel.setText("Status: Connection Closed.");
+                        ta.appendText("Status: Connection Closed.\n");
+                        statusLabel.setText("Status: Connection Closed.\n");
+                        b1.setDisable(true);
+                        b2.setDisable(true);
+                        b3.setDisable(true);
 
                         try {
                             if (sInput != null) {
