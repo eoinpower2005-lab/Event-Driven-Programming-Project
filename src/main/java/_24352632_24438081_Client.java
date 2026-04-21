@@ -2,6 +2,7 @@ import javafx.application.Application;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
@@ -130,59 +131,81 @@ public class _24352632_24438081_Client extends Application {
                     }
 
                     ta.appendText("CLIENT: " + request + "\n");
-                    sOutput.println(request);
 
-                    String message = sInput.readLine();
-                    if (message == null) {
+                    final String r = request;
+                    Task<String> task = new Task<String>() {
+                        @Override
+                        protected String call() throws Exception {
+                            sOutput.println(r);
+                            return sInput.readLine();
+                        }
+                    };
+
+
+                    task.setOnSucceeded(succeeded -> {
+                        String message = task.getValue();
+                        if (message == null) {
+                            ta.appendText("SERVER: Connection Closed.");
+                            serverConnected = false;
+                            statusLabel.setText("Status: Connection Closed.");
+                            b1.setDisable(true);
+                            b2.setDisable(true);
+                            b3.setDisable(true);
+                            return;
+                        }
+                        ta.appendText("SERVER: " + message + "\n");
+
+                        if (message.startsWith("LECTURE SUCCESSFULLY ADDED: ")) {
+                            slots.add(new TimetableSlot(date, time, room, module));
+                        } else if (message.startsWith("LECTURE SUCCESSFULLY REMOVED: ")) {
+                            TimetableSlot match = null;
+                            for (TimetableSlot slot : slots) {
+                                if (slot.getDate().equals(date) && slot.getRoom().equals(room) && slot.getModule().equals(module) && slot.getTime().equals(time)) {
+                                    match = slot;
+                                    break;
+                                }
+                            }
+                            if (match != null) {
+                                slots.remove(match);
+                            }
+                        } else if (message.startsWith("DISPLAY: ") || message.startsWith("DISPLAY EARLY LECTURES: ")) {
+                            slots.clear();
+                            String text = "";
+                            if (message.startsWith("DISPLAY: ")) {
+                                text = message.substring(9);
+                            } else {
+                                text = message.substring(24);
+                            }
+                            String[] tSlots = text.split("\\.");
+                            for (String tSlot : tSlots) {
+                                if (tSlot.isEmpty()) {
+                                    continue;
+                                }
+                                String[] parts = tSlot.split("\\|", -1);
+                                if (parts.length == 4) {
+                                    slots.add(new TimetableSlot(parts[0], parts[1], parts[2], parts[3]));
+                                }
+                            }
+                        } else if (message.startsWith("Clash") || message.startsWith("Error")) {
+                            displayError(message);
+                        }
+                    });
+
+                    task.setOnFailed(failed -> {
+                        Throwable ex = task.getException();
+                        displayError("Closing Connection: " + ex.getMessage());
                         ta.appendText("SERVER: Connection Closed.");
-                        serverConnected = false;
                         statusLabel.setText("Status: Connection Closed.");
                         b1.setDisable(true);
                         b2.setDisable(true);
                         b3.setDisable(true);
-                        return;
-                    }
-                    ta.appendText("SERVER: " + message + "\n");
+                    });
 
-                    if (message.startsWith("LECTURE SUCCESSFULLY ADDED: ")) {
-                        slots.add(new TimetableSlot(date, time, room, module));
-                    } else if (message.startsWith("LECTURE SUCCESSFULLY REMOVED: ")) {
-                        for (TimetableSlot slot : slots) {
-                            if (slot.getDate().equals(date) && slot.getRoom().equals(room) && slot.getModule().equals(module) && slot.getTime().equals(time)) {
-                                slots.remove(slot);
-                                break;
-                            }
-                        }
-                    } else if (message.startsWith("DISPLAY: ") || message.startsWith("DISPLAY EARLY LECTURES: ")) {
-                        slots.clear();
-                        String text = "";
-                        if (message.startsWith("DISPLAY: ")) {
-                            text = message.substring(9);
-                        } else {
-                            text = message.substring(24);
-                        }
-                        String[] tSlots = text.split("\\.");
-                        for (String tSlot : tSlots) {
-                            if (tSlot.isEmpty()) {
-                                continue;
-                            }
-                            String[] parts = tSlot.split("\\|", -1);
-                            if (parts.length == 4) {
-                                slots.add(new TimetableSlot(parts[0], parts[1], parts[2], parts[3]));
-                            }
-                        }
-                    } else if (message.startsWith("Clash") || message.startsWith("Error")) {
-                        displayError(message);
-                    }
+                    Thread thread = new Thread(task);
+                    thread.setDaemon(true);
+                    thread.start();
                 } catch (InvalidInputException e) {
                     displayError(e.getMessage());
-                } catch (IOException e) {
-                    displayError("Closing Connection: " + e.getMessage());
-                    ta.appendText("SERVER: Connection Closed.");
-                    statusLabel.setText("Status: Connection Closed.");
-                    b1.setDisable(true);
-                    b2.setDisable(true);
-                    b3.setDisable(true);
                 }
             }
         };
@@ -191,22 +214,30 @@ public class _24352632_24438081_Client extends Application {
             @Override
             public void handle(ActionEvent event) {
                 if (serverConnected) {
-                    try {
-                        ta.appendText("CLIENT: STOP. \n");
-                        sOutput.println("STOP");
-                        String message = sInput.readLine();
+                    ta.appendText("CLIENT: STOP. \n");
+
+                    Task<String> task = new Task<String>() {
+                        @Override
+                        protected String call() throws Exception {
+                            sOutput.println("STOP");
+                            return sInput.readLine();
+                        }
+                    };
+
+                    task.setOnSucceeded(succeeded -> {
+                        String message = task.getValue();
                         if (message != null) {
                             ta.appendText("SERVER: " + message + "\n");
                         } else {
                             ta.appendText("SERVER: No Client Response. \n");
                         }
                         serverConnected = false;
-                    } catch (IOException e) {
-                        displayError("Closing Connection: " + e.getMessage());
-                    } finally {
+                        ta.appendText("SERVER: Connection Closed.");
+                        statusLabel.setText("Status: Connection Closed.");
+
                         try {
                             if (sInput != null) {
-                                sInput.close();
+                                sOutput.close();
                             }
                             if (sOutput != null) {
                                 sOutput.close();
@@ -217,13 +248,40 @@ public class _24352632_24438081_Client extends Application {
                         } catch (IOException e) {
                             displayError("Closing Connection: " + e.getMessage());
                         }
-                    }
+
+                    });
+
+                    task.setOnFailed(failed -> {
+                        Throwable ex = task.getException();
+                        displayError("Closing Connection: " + ex.getMessage());
+                        ta.appendText("SERVER: Connection Closed.");
+                        statusLabel.setText("Status: Connection Closed.");
+
+                        try {
+                            if (sInput != null) {
+                                sOutput.close();
+                            }
+                            if (sOutput != null) {
+                                sOutput.close();
+                            }
+                            if (socket != null) {
+                                socket.close();
+                            }
+                        } catch (IOException e) {
+                            displayError("Closing Connection: " + e.getMessage());
+                        }
+                    });
+
+                    Thread thread = new Thread(task);
+                    thread.setDaemon(true);
+                    thread.start();
+                } else {
+                    b1.setDisable(true);
+                    b2.setDisable(true);
+                    b3.setDisable(true);
+                    ta.appendText("Status: Connection Closed. \n");
+                    statusLabel.setText("Status: Connection Closed.");
                 }
-                b1.setDisable(true);
-                ta.appendText("Status: Connection Closed. \n");
-                statusLabel.setText("Status: Connection Closed.");
-                b2.setDisable(true);
-                b3.setDisable(true);
             }
         };
 
@@ -231,20 +289,35 @@ public class _24352632_24438081_Client extends Application {
             @Override
             public void handle(ActionEvent event) {
                 if (serverConnected) {
-                    try {
-                        ta.appendText("CLIENT: Clear Timetable Slots. \n");
-                        sOutput.println("Clear Timetable Slots.");
-                        String message = sInput.readLine();
+                    ta.appendText("CLIENT: Clear Timetable Slots. \n");
+
+                    Task<String> task = new Task<String>() {
+                        @Override
+                        protected String call() throws Exception {
+                            sOutput.println("Clear Timetable Slots.");
+                            return sInput.readLine();
+                        }
+                    };
+
+                    task.setOnSucceeded(succeeded -> {
+                        String message = task.getValue();
                         if (message != null && message.startsWith("Error")) {
                             ta.appendText("SERVER: " + message + "\n");
                             displayError(message);
                         } else {
-                            ta.appendText("SERVER: " + message  + "\n");
+                            ta.appendText("SERVER: " + message + "\n");
                             slots.clear();
                         }
-                    } catch (IOException e) {
-                        displayError("Closing Connection: " + e.getMessage());
-                    }
+                    });
+
+                    task.setOnFailed(failed -> {
+                        Throwable ex = task.getException();
+                        displayError("Closing Connection: " + ex.getMessage());
+                    });
+
+                    Thread thread = new Thread(task);
+                    thread.setDaemon(true);
+                    thread.start();
                 }
             }
         };
