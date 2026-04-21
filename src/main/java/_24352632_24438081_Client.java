@@ -5,15 +5,18 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 
 public class _24352632_24438081_Client extends Application {
@@ -58,30 +61,62 @@ public class _24352632_24438081_Client extends Application {
         b3.setMaxWidth(140);
 
         Label statusLabel = new Label("Status: Client and Server Connecting.");
+        statusLabel.setStyle("-fx-text-fill: white;");
 
         TextArea ta = new TextArea();
         ta.setEditable(false);
         ta.setWrapText(true);
 
-        TableView<TimetableSlot> tableView = new TableView();
+        TableView<TimetableRow> tableView = new TableView();
 
-        TableColumn<TimetableSlot, String> col1 = new TableColumn<>("Date");
-        col1.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getDate().toString()));
+        TableColumn<TimetableRow, String> col1 = new TableColumn<>("Time");
+        col1.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getTime()));
 
-        TableColumn<TimetableSlot, String> col2 = new TableColumn<>("Time");
-        col2.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getTime().toString()));
+        TableColumn<TimetableRow, String> col2 = new TableColumn<>("Monday");
+        col2.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getMonday()));
 
-        TableColumn<TimetableSlot, String> col3 = new TableColumn<>("Room");
-        col3.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getRoom().toString()));
+        TableColumn<TimetableRow, String> col3 = new TableColumn<>("Tuesday");
+        col3.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getTuesday()));
 
-        TableColumn<TimetableSlot, String> col4 = new TableColumn<>("Module");
-        col4.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getModule().toString()));
+        TableColumn<TimetableRow, String> col4 = new TableColumn<>("Wednesday");
+        col4.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getWednesday()));
 
-        tableView.getColumns().addAll(col1, col2, col3, col4);
+        TableColumn<TimetableRow, String> col5 = new TableColumn<>("Thursday");
+        col5.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getThursday()));
+
+        TableColumn<TimetableRow, String> col6 = new TableColumn<>("Friday");
+        col6.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getFriday()));
+
+        tableView.getColumns().addAll(col1, col2, col3, col4, col5, col6);
         tableView.setEditable(false);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableView.fixedCellSizeProperty().bind(
+                tableView.heightProperty().subtract(30).divide(9)
+        );
+
+        tableView.setStyle("-fx-background-color: #20853c");
+        col1.setStyle("-fx-alignment: CENTER; -fx-font-weight: bold;");
+        b1.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
+        b2.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
+        b3.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
+        box1.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
+        box2.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
+        box3.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
+        roomID.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
+        datePicker.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
+        ObservableList<TimetableRow> rows = FXCollections.observableArrayList(new TimetableRow("09:00-10:00"),
+                                                                              new TimetableRow("10:00-11:00"),
+                                                                              new TimetableRow("11:00-12:00"),
+                                                                              new TimetableRow("12:00-13:00"),
+                                                                              new TimetableRow("13:00-14:00"),
+                                                                              new TimetableRow("14:00-15:00"),
+                                                                              new TimetableRow("15:00-16:00"),
+                                                                              new TimetableRow("16:00-17:00"),
+                                                                              new TimetableRow("17:00-18:00"));
+
+
+        tableView.setItems(rows);
         ObservableList<TimetableSlot> slots = FXCollections.observableArrayList();
-        tableView.setItems(slots);
 
         try {
             socket = new Socket(InetAddress.getLocalHost(), 1234);
@@ -141,7 +176,6 @@ public class _24352632_24438081_Client extends Application {
                         }
                     };
 
-
                     task.setOnSucceeded(succeeded -> {
                         String message = task.getValue();
                         if (message == null) {
@@ -157,6 +191,7 @@ public class _24352632_24438081_Client extends Application {
 
                         if (message.startsWith("LECTURE SUCCESSFULLY ADDED: ")) {
                             slots.add(new TimetableSlot(date, time, room, module));
+                            updateTable(tableView, rows, slots);
                         } else if (message.startsWith("LECTURE SUCCESSFULLY REMOVED: ")) {
                             TimetableSlot match = null;
                             for (TimetableSlot slot : slots) {
@@ -167,6 +202,7 @@ public class _24352632_24438081_Client extends Application {
                             }
                             if (match != null) {
                                 slots.remove(match);
+                                updateTable(tableView, rows, slots);
                             }
                         } else if (message.startsWith("DISPLAY: ") || message.startsWith("DISPLAY EARLY LECTURES: ")) {
                             slots.clear();
@@ -186,6 +222,7 @@ public class _24352632_24438081_Client extends Application {
                                     slots.add(new TimetableSlot(parts[0], parts[1], parts[2], parts[3]));
                                 }
                             }
+                            updateTable(tableView, rows, slots);
                         } else if (message.startsWith("Clash") || message.startsWith("Error")) {
                             displayError(message);
                         }
@@ -307,6 +344,7 @@ public class _24352632_24438081_Client extends Application {
                         } else {
                             ta.appendText("SERVER: " + message + "\n");
                             slots.clear();
+                            updateTable(tableView, rows, slots);
                         }
                     });
 
@@ -331,7 +369,9 @@ public class _24352632_24438081_Client extends Application {
         pane.setLeft(vbox);
         pane.setCenter(tableView);
         pane.setBottom(ta);
-        vbox.setSpacing(3);
+        vbox.setPadding(new Insets(10));
+        vbox.setSpacing(8);
+        pane.setStyle("-fx-background-color: #20853c");
 
         Scene scene = new Scene(pane, 400, 400);
         primaryStage.setScene(scene);
@@ -346,6 +386,38 @@ public class _24352632_24438081_Client extends Application {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void updateTable(TableView<TimetableRow> table, ObservableList<TimetableRow> rows, ObservableList<TimetableSlot> slots) {
+        for (TimetableRow row : rows) {
+            row.setMonday("");
+            row.setTuesday("");
+            row.setWednesday("");
+            row.setThursday("");
+            row.setFriday("");
+        }
+
+        for (TimetableSlot slot : slots) {
+            String t = "LECTURE" + "\nModule: " + slot.getModule() + " | Room: " + slot.getRoom();
+            LocalDate d = LocalDate.parse(slot.getDate());
+            for (TimetableRow row : rows) {
+                if (row.getTime().equals(slot.getTime())) {
+                    if (d.getDayOfWeek() == DayOfWeek.MONDAY) {
+                        row.setMonday(t);
+                    } else if (d.getDayOfWeek() == DayOfWeek.TUESDAY) {
+                        row.setTuesday(t);
+                    } else if (d.getDayOfWeek() == DayOfWeek.WEDNESDAY) {
+                        row.setWednesday(t);
+                    } else if (d.getDayOfWeek() == DayOfWeek.THURSDAY) {
+                        row.setThursday(t);
+                    } else if (d.getDayOfWeek() == DayOfWeek.FRIDAY) {
+                        row.setFriday(t);
+                    }
+                    break;
+                }
+            }
+        }
+        table.refresh();
     }
 }
 
