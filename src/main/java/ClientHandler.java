@@ -62,22 +62,30 @@ public class ClientHandler implements Runnable {
     public String clientRequest(String request) throws InvalidInputException, IncorrectActionException, InterruptedException {
         String response = "";
 
-        if (request.equals("Clear Timetable Slots.")) {
+        if (request.contains("Clear Timetable Slots.")) {
+            String[] clearParts = request.split("\\|", -1);
+            String prog = clearParts[0];
             synchronized (timetableSlots) {
                 if (timetableSlots.isEmpty()) {
                     throw new InvalidInputException("Error - No Timetable Slots to Clear!");
+                } else {
+                    for (int i = timetableSlots.size()-1; i >= 0; i--) {
+                        if (timetableSlots.get(i).getCourse().equals(prog)) {
+                            timetableSlots.remove(i);
+                        }
+                    }
                 }
-                timetableSlots.clear();
             }
             response = "Timetable Slots Cleared.";
             return response;
         }
         String[] fields = request.split("\\|", -1);
         String option = fields[0];
-        String date = fields[1];
-        String time = fields[2];
-        String room = fields[3];
-        String module = fields[4];
+        String programme = fields[1];
+        String date = fields[2];
+        String time = fields[3];
+        String room = fields[4];
+        String module = fields[5];
 
         if (option.equals("ADD")) {
 
@@ -85,14 +93,14 @@ public class ClientHandler implements Runnable {
                 for (TimetableSlot slot : timetableSlots) {
                     if (slot.getDate().equals(date) && slot.getTime().equals(time) && slot.getRoom().equals(room)) {
                         throw new InvalidInputException("Clash: Timetable Slot already exists for that room, date, and time!");
-                    } else if (slot.getDate().equals(date) && slot.getTime().equals(time)) {
+                    } else if (slot.getDate().equals(date) && slot.getTime().equals(time) && slot.getCourse().equals(programme)) {
                         throw new InvalidInputException("Clash: Timetable slot for a course module already exists for that date and time!");
                     }
                 }
 
-                timetableSlots.add(new TimetableSlot(date, time, room, module));
+                timetableSlots.add(new TimetableSlot(programme, date, time, room, module));
             }
-            response = "LECTURE SUCCESSFULLY ADDED: " + date + "|" + time + "|" + room + "|" + module;
+            response = "LECTURE SUCCESSFULLY ADDED: " + programme + "|" + date + "|" + time + "|" + room + "|" + module;
         } else if (option.equals("REMOVE")) {
 
             TimetableSlot match = null;
@@ -101,7 +109,7 @@ public class ClientHandler implements Runnable {
                     throw new InvalidInputException("Error - Cannot remove timetable slot! No slots exist.");
                 }
                 for (TimetableSlot slot : timetableSlots) {
-                    if (slot.getDate().equals(date) && slot.getTime().equals(time) && slot.getRoom().equals(room) && slot.getModule().equals(module)) {
+                    if (slot.getCourse().equals(programme) && slot.getDate().equals(date) && slot.getTime().equals(time) && slot.getRoom().equals(room) && slot.getModule().equals(module)) {
                         match = slot;
                         break;
                     }
@@ -114,7 +122,7 @@ public class ClientHandler implements Runnable {
                 }
             }
 
-            response = "LECTURE SUCCESSFULLY REMOVED: " + date + "|" + time + "|" + room + "|" + module;
+            response = "LECTURE SUCCESSFULLY REMOVED: " + programme + "|" + date + "|" + time + "|" + room + "|" + module;
         } else if (option.equals("EARLY LECTURES")) {
             synchronized (timetableSlots) {
                 if (timetableSlots.isEmpty()) {
@@ -123,7 +131,7 @@ public class ClientHandler implements Runnable {
             }
 
             try {
-                SchedulingTask task = new SchedulingTask(timetableSlots);
+                SchedulingTask task = new SchedulingTask(timetableSlots, programme);
                 executorService.submit(task);
                 response = task.get();
             } catch (Exception e) {
@@ -137,9 +145,15 @@ public class ClientHandler implements Runnable {
                 } else {
                     StringBuilder sb = new StringBuilder("DISPLAY: ");
                     for (TimetableSlot slot : timetableSlots) {
-                        sb.append(slot.getDate()).append("|").append(slot.getTime()).append("|").append(slot.getRoom()).append("|").append(slot.getModule()).append(".");
+                        if (slot.getCourse().equals(programme)) {
+                            sb.append(slot.getCourse()).append("|").append(slot.getDate()).append("|").append(slot.getTime()).append("|").append(slot.getRoom()).append("|").append(slot.getModule()).append(".");
+                        }
                     }
-                    response = sb.toString();
+                    if (sb.length() == "DISPLAY: ".length()) {
+                        throw new InvalidInputException("Error - No timetable slots found!");
+                    } else {
+                        response = sb.toString();
+                    }
                 }
             }
 

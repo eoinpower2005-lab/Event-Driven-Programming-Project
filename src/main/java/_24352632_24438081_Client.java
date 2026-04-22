@@ -1,5 +1,6 @@
 import javafx.application.Application;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -32,6 +33,10 @@ public class _24352632_24438081_Client extends Application {
     @Override
     public void start(Stage primaryStage) {
 
+        ComboBox<String> course = new ComboBox<>(FXCollections.observableArrayList("LM051", "LM126"));
+        course.setPromptText("Choose a Course");
+        course.setMaxWidth(140);
+
         ComboBox<String> box1 = new ComboBox(FXCollections.observableArrayList("ADD", "REMOVE", "DISPLAY", "EARLY LECTURES", "OTHER"));
         box1.setPromptText("Choose an Option");
         box1.setMaxWidth(140);
@@ -47,9 +52,19 @@ public class _24352632_24438081_Client extends Application {
         roomID.setPromptText("Enter Room ID");
         roomID.setMaxWidth(140);
 
-        ComboBox<String> box3 = new ComboBox(FXCollections.observableArrayList("CS4076", "CS4006", "CS4115", "MA4413", "CS4815"));
+        ComboBox<String> box3 = new ComboBox();
         box3.setPromptText("Choose a Module");
         box3.setMaxWidth(140);
+
+        ObservableList<String> lm051Modules = FXCollections.observableArrayList("CS4076", "CS4006", "CS4115", "CS4815", "MA4413");
+        ObservableList<String> lm126Modules = FXCollections.observableArrayList("EE4314", "EE4024", "MA4004", "EE4214", "EE4524");
+        course.setOnAction(e -> {
+            if (course.getValue().equals("LM051")) {
+                box3.setItems(lm051Modules);
+            } else if (course.getValue().equals("LM126")) {
+                box3.setItems(lm126Modules);
+            }
+        });
 
         Button b1 = new Button("Send Request");
         b1.setMaxWidth(140);
@@ -104,6 +119,7 @@ public class _24352632_24438081_Client extends Application {
         box3.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
         roomID.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
         datePicker.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
+        course.setStyle("-fx-alignment: CENTER; -fx-border-color: black; -fx-font-weight: bold;" );
         ObservableList<TimetableRow> rows = FXCollections.observableArrayList(new TimetableRow("09:00-10:00"),
                                                                               new TimetableRow("10:00-11:00"),
                                                                               new TimetableRow("11:00-12:00"),
@@ -141,11 +157,16 @@ public class _24352632_24438081_Client extends Application {
                     return;
                 }
                 try {
+                    String programme = course.getValue();
                     String option = box1.getValue();
                     String room = roomID.getText();
                     String date = String.valueOf(datePicker.getValue());
                     String time = box2.getValue();
                     String module = box3.getValue();
+
+                    if (programme == null) {
+                        throw new InvalidInputException("You must select a course!");
+                    }
 
                     if (option == null) {
                         throw new InvalidInputException("You must select an option!");
@@ -156,13 +177,13 @@ public class _24352632_24438081_Client extends Application {
                         if (date == null || date.isEmpty() || time == null || time.isEmpty() || room == null || room.isEmpty() || module == null || module.isEmpty()) {
                             throw new InvalidInputException("Data fields cannot be empty!");
                         }
-                        request = option + "|" + date + "|" + time + "|" + room + "|" + module;
+                        request = option + "|" + programme + "|" + date + "|" + time + "|" + room + "|" + module;
                     } else if (option.equals("DISPLAY")) {
-                        request = option + "||||";
+                        request = option + "|" + programme + "||||";
                     } else if (option.equals("EARLY LECTURES")) {
-                        request = option + "||||";
+                        request = option + "|" + programme + "||||";
                     } else if (option.equals("OTHER")) {
-                        request = option + "||||";
+                        request = option + "|" + programme + "||||";
                     }
 
                     ta.appendText("CLIENT: " + request + "\n");
@@ -190,7 +211,7 @@ public class _24352632_24438081_Client extends Application {
                         ta.appendText("SERVER: " + message + "\n");
 
                         if (message.startsWith("LECTURE SUCCESSFULLY ADDED: ")) {
-                            slots.add(new TimetableSlot(date, time, room, module));
+                            slots.add(new TimetableSlot(programme, date, time, room, module));
                             updateTable(tableView, rows, slots);
                         } else if (message.startsWith("LECTURE SUCCESSFULLY REMOVED: ")) {
                             TimetableSlot match = null;
@@ -206,6 +227,7 @@ public class _24352632_24438081_Client extends Application {
                             }
                         } else if (message.startsWith("DISPLAY: ") || message.startsWith("DISPLAY EARLY LECTURES: ")) {
                             slots.clear();
+                            updateTable(tableView, rows, slots);
                             String text = "";
                             if (message.startsWith("DISPLAY: ")) {
                                 text = message.substring(9);
@@ -218,8 +240,8 @@ public class _24352632_24438081_Client extends Application {
                                     continue;
                                 }
                                 String[] parts = tSlot.split("\\|", -1);
-                                if (parts.length == 4) {
-                                    slots.add(new TimetableSlot(parts[0], parts[1], parts[2], parts[3]));
+                                if (parts.length == 5) {
+                                    slots.add(new TimetableSlot(parts[0], parts[1], parts[2], parts[3], parts[4]));
                                 }
                             }
                             updateTable(tableView, rows, slots);
@@ -328,25 +350,33 @@ public class _24352632_24438081_Client extends Application {
         EventHandler<ActionEvent> button3Event = new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
+                String programme = course.getValue();
                 if (serverConnected) {
-                    ta.appendText("CLIENT: Clear Timetable Slots. \n");
+                    ta.appendText("CLIENT: " + programme + "|" + "Clear Timetable Slots. \n");
 
                     Task<String> task = new Task<String>() {
                         @Override
                         protected String call() throws Exception {
-                            sOutput.println("Clear Timetable Slots.");
+                            String programme = course.getValue();
+                            sOutput.println(programme + "|" + "Clear Timetable Slots.");
                             return sInput.readLine();
                         }
                     };
 
                     task.setOnSucceeded(succeeded -> {
+                        slots.clear();
+                        updateTable(tableView, rows, slots);
                         String message = task.getValue();
                         if (message != null && message.startsWith("Error")) {
                             ta.appendText("SERVER: " + message + "\n");
                             displayError(message);
                         } else {
                             ta.appendText("SERVER: " + message + "\n");
-                            slots.clear();
+                            for (int i = slots.size() - 1; i >= 0; i--) {
+                                if (slots.get(i).getCourse().equals(programme)) {
+                                    slots.remove(i);
+                                }
+                            }
                             updateTable(tableView, rows, slots);
                         }
                     });
@@ -368,7 +398,7 @@ public class _24352632_24438081_Client extends Application {
         b3.setOnAction(button3Event);
 
         BorderPane pane = new BorderPane();
-        VBox vbox = new VBox(box1, datePicker, box2, roomID, box3, b1, b2, b3, statusLabel);
+        VBox vbox = new VBox(course, box1, datePicker, box2, roomID, box3, b1, b2, b3, statusLabel);
         pane.setLeft(vbox);
         pane.setCenter(tableView);
         pane.setBottom(ta);

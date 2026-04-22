@@ -4,17 +4,18 @@ import java.util.List;
 import java.util.concurrent.RecursiveAction;
 
 public class ShiftDays extends RecursiveAction {
-    private List<String> dates;
+    private final List<String> dates;
+    private String course;
     private final List<TimetableSlot> timetableSlots;
     private final String[] times = {"09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00", "17:00-18:00"};
 
-    public ShiftDays(List<String> dates, List<TimetableSlot> timetableSlots) {
+    public ShiftDays(List<String> dates, List<TimetableSlot> timetableSlots, String course) {
         this.dates = dates;
         this.timetableSlots = timetableSlots;
+        this.course = course;
     }
 
     private boolean shifted = true;
-    private final List<TimetableSlot> daySlots = new ArrayList<>();
 
     @Override
     protected void compute() {
@@ -22,22 +23,19 @@ public class ShiftDays extends RecursiveAction {
             shiftToMorning(dates.get(0));
         } else {
             int mid = dates.size() / 2;
-            ShiftDays left = new ShiftDays(dates.subList(0, mid), timetableSlots);
-            ShiftDays right = new ShiftDays(dates.subList(mid, dates.size()), timetableSlots);
+            ShiftDays left = new ShiftDays(dates.subList(0, mid), timetableSlots, course);
+            ShiftDays right = new ShiftDays(dates.subList(mid, dates.size()), timetableSlots, course);
             left.fork();
             right.compute();
             left.join();
-
-            if (!left.shifted || !right.shifted) {
-                shifted = false;
-            }
         }
     }
 
     private void shiftToMorning(String date) {
         synchronized (timetableSlots) {
+            List<TimetableSlot> daySlots = new ArrayList<>();
             for (TimetableSlot timetableSlot : timetableSlots) {
-                if (timetableSlot.getDate().equals(date)) {
+                if (timetableSlot.getCourse().equals(course) && timetableSlot.getDate().equals(date)) {
                     daySlots.add(timetableSlot);
                 }
             }
@@ -50,8 +48,9 @@ public class ShiftDays extends RecursiveAction {
 
             for (int i = 0; i < daySlots.size(); i++) {
                 String shiftedTime = times[i];
+                String shiftedRoom = daySlots.get(i).getRoom();
                 for (TimetableSlot slot : timetableSlots) {
-                    if (slot.getDate().equals(date) && slot.getTime().equals(shiftedTime) && !daySlots.contains(slot)) {
+                    if (slot.getDate().equals(date) && slot.getTime().equals(shiftedTime) && slot.getRoom().equals(shiftedRoom) && !daySlots.contains(slot)) {
                         shifted = false;
                         return;
                     }
