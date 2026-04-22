@@ -1,4 +1,4 @@
-import javafx.beans.property.StringProperty;
+package Model;
 
 public class TimetableSlot {
     private String course;

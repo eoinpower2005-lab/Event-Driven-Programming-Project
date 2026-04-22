@@ -1,3 +1,5 @@
+package Model;
+
 public class IncorrectActionException extends Exception{
     public IncorrectActionException(){
         super();

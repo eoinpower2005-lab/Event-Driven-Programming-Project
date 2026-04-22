@@ -1,3 +1,10 @@
+package Controller;
+
+import Model.IncorrectActionException;
+import Model.InvalidInputException;
+import Model.SchedulingTask;
+import Model.TimetableSlot;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;

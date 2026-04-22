@@ -1,3 +1,5 @@
+package Model;
+
 import javafx.concurrent.Task;
 
 import java.util.ArrayList;

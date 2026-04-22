@@ -1,5 +1,4 @@
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
+package Model;
 
 public class TimetableRow {
     private String time = "";

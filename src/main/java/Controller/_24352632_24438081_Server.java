@@ -1,9 +1,10 @@
+package Controller;
+
 import javafx.application.Platform;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 
 public class _24352632_24438081_Server {
     private static ServerSocket servSocket;
